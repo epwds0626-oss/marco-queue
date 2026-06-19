@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>パスタのマルコ | 順番待ち受付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  :root { --navy:#1a2744; --gold:#c8a84b; --cream:#fdf8f0; --text:#1a2744; --gray:#8a8a8a; --border:#ddd5c0; --green:#27ae60; }
+  body { font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; background:var(--navy); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+  .card { background:var(--cream); border-radius:16px; width:100%; max-width:420px; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,.4); }
+  .card-header { background:var(--navy); padding:20px 24px 16px; text-align:center; border-bottom:3px solid var(--gold); }
+  .store-name { color:var(--gold); font-size:22px; font-weight:700; letter-spacing:.12em; }
+  .store-sub { color:rgba(255,255,255,.6); font-size:12px; margin-top:2px; }
+  .card-body { padding:28px 24px; }
+  .steps { display:flex; justify-content:center; gap:6px; margin-bottom:28px; }
+  .step-dot { width:8px; height:8px; border-radius:50%; background:var(--border); transition:all .3s; }
+  .step-dot.active { background:var(--gold); width:24px; border-radius:4px; }
+  .step-dot.done { background:var(--navy); }
+  .screen { display:none; }
+  .screen.active { display:block; }
+  .screen-title { font-size:18px; font-weight:700; color:var(--navy); text-align:center; margin-bottom:8px; }
+  .screen-desc { font-size:13px; color:var(--gray); text-align:center; margin-bottom:24px; line-height:1.6; }
+  .wait-status-box { background:#fff; border:2px solid var(--gold); border-radius:12px; padding:16px; margin-bottom:20px; text-align:center; }
+  .wait-status-zero { font-size:15px; color:var(--green); font-weight:700; }
+  .wait-status-label { font-size:13px; color:var(--gray); }
+  .wait-status-row { display:flex; justify-content:center; align-items:baseline; gap:6px; }
+  .wait-status-num { font-size:36px; font-weight:700; color:var(--navy); line-height:1; }
+  .wait-status-unit { font-size:14px; color:var(--navy); font-weight:600; }
+  .wait-status-time { font-size:13px; color:var(--gray); margin-top:6px; }
+  .wait-status-time strong { color:var(--navy); font-size:15px; }
+  .notice-box { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:24px; }
+  .notice-box p { font-size:13px; color:var(--text); line-height:1.8; }
+  .notice-box p+p { margin-top:8px; }
+  .count-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .count-btn { aspect-ratio:1; background:#fff; border:2px solid var(--border); border-radius:10px; font-size:18px; font-weight:700; color:var(--navy); cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  .count-btn span.unit { font-size:11px; font-weight:400; color:var(--gray); }
+  .count-btn:active { transform:scale(.95); }
+  .count-btn.selected { background:var(--navy); border-color:var(--navy); color:#fff; }
+  .count-btn.selected span.unit { color:rgba(255,255,255,.7); }
+  .name-input { width:100%; padding:14px 16px; font-size:18px; border:2px solid var(--border); border-radius:10px; background:#fff; color:var(--navy); font-family:inherit; outline:none; margin-bottom:8px; transition:border-color .2s; }
+  .name-input:focus { border-color:var(--gold); }
+  .name-hint { font-size:12px; color:var(--gray); margin-bottom:24px; }
+  .qr-box { background:#fff; border:2px solid var(--border); border-radius:12px; padding:20px; text-align:center; margin-bottom:12px; }
+  .qr-box img { width:160px; height:160px; display:block; margin:0 auto 10px; }
+  .qr-label { font-size:13px; color:var(--gray); line-height:1.6; }
+  .line-steps { background:#f0f9f0; border:1px solid #b8ddb8; border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+  .line-steps p { font-size:13px; color:#2d6a2d; line-height:1.8; }
+  .btn-no-line { width:100%; padding:13px; background:#fff; color:var(--gray); border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-bottom:12px; }
+  /* ベル待ち画面 */
+  .bell-waiting-box { background:#fff; border:2px solid #e8c84b; border-radius:16px; padding:28px 20px; text-align:center; margin-bottom:24px; }
+  .bell-icon { font-size:56px; margin-bottom:12px; }
+  .bell-waiting-title { font-size:20px; font-weight:700; color:var(--navy); margin-bottom:8px; }
+  .bell-waiting-desc { font-size:14px; color:var(--gray); line-height:1.7; }
+  .bell-waiting-note { font-size:13px; color:#b7770d; background:#fff8e6; border-radius:8px; padding:10px 14px; margin-top:16px; font-weight:600; }
+  /* 完了 */
+  .complete-icon { width:72px; height:72px; background:var(--navy); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+  .complete-icon svg { width:36px; height:36px; }
+  .wait-info { background:#fff; border:2px solid var(--border); border-radius:12px; padding:20px; text-align:center; margin-bottom:20px; }
+  .wait-label { font-size:13px; color:var(--gray); margin-bottom:4px; }
+  .wait-number { font-size:52px; font-weight:700; color:var(--navy); line-height:1; }
+  .wait-unit { font-size:16px; color:var(--gray); margin-top:4px; }
+  .wait-my-info { font-size:14px; color:var(--text); margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .wait-note { font-size:12px; color:var(--gray); text-align:center; line-height:1.7; margin-bottom:16px; }
+  .btn-primary { width:100%; padding:16px; background:var(--navy); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; letter-spacing:.06em; transition:all .15s; font-family:inherit; }
+  .btn-primary:active { transform:scale(.98); background:#0f1a33; }
+  .btn-primary:disabled { background:var(--border); color:var(--gray); cursor:not-allowed; }
+  .btn-home { width:100%; padding:14px; background:#fff; color:var(--navy); border:2px solid var(--navy); border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:10px; }
+  @keyframes pulse {
+    0% { transform:scale(1); }
+    50% { transform:scale(1.03); box-shadow:0 0 0 6px rgba(39,174,96,.3); }
+    100% { transform:scale(1); }
+  }
+  .btn-back { display:block; text-align:center; margin-top:14px; font-size:13px; color:var(--gray); cursor:pointer; padding:4px; }
+  .selection-summary { background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--navy); margin-bottom:20px; display:flex; gap:16px; justify-content:center; }
+  .selection-summary span { color:var(--gray); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="store-name">パスタのマルコ</div>
+    <div class="store-sub">順番待ち受付</div>
+  </div>
+  <div class="card-body">
+    <div class="steps" id="steps">
+      <div class="step-dot active" id="dot0"></div>
+      <div class="step-dot" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+      <div class="step-dot" id="dot4"></div>
+    </div>
+
+    <!-- STEP 0 -->
+    <div class="screen active" id="screen0">
+      <div class="screen-title">ご来店ありがとうございます</div>
+      <p class="screen-desc">順番になりましたらLINEでお知らせします</p>
+      <div class="wait-status-box">
+        <div id="wait-status-content"><div class="wait-status-label">読み込み中...</div></div>
+      </div>
+      <div class="notice-box">
+        <p>・店内混雑のため、外のお車内でお待ちいただくこともございます。</p>
+        <p>・ご案内の順番は前後することがあります。</p>
+        <p>・2回お呼び出しした際にご不在の場合は、キャンセルとさせていただく場合がございます。</p>
+      </div>
+      <button class="btn-primary" onclick="goStep(1)">受付をはじめる</button>
+    </div>
+
+    <!-- STEP 1: 大人人数 -->
+    <div class="screen" id="screen1">
+      <div class="screen-title">大人の人数</div>
+      <p class="screen-desc">中学生以上の人数をお選びください</p>
+      <div class="count-grid" id="adult-grid"></div>
+      <button class="btn-primary" id="btn-adult" onclick="goStep(2)" disabled>次へ</button>
+      <span class="btn-back" onclick="goStep(0)">← 戻る</span>
+    </div>
+
+    <!-- STEP 2: 子ども人数 -->
+    <div class="screen" id="screen2">
+      <div class="screen-title">子どもの人数</div>
+      <p class="screen-desc">小学生以下の人数をお選びください</p>
+      <div class="count-grid" id="child-grid"></div>
+      <button class="btn-primary" id="btn-child" onclick="goStep(3)" disabled>次へ</button>
+      <span class="btn-back" onclick="goStep(1)">← 戻る</span>
+    </div>
+
+    <!-- STEP 3: 名前入力 -->
+    <div class="screen" id="screen3">
+      <div class="screen-title">お名前</div>
+      <p class="screen-desc">呼び出し時に使用します（苗字のみでOK）</p>
+      <div class="selection-summary">
+        <span>大人</span><strong id="summary-adult">-</strong>名　
+        <span>子ども</span><strong id="summary-child">-</strong>名
+      </div>
+      <input type="text" class="name-input" id="name-input" placeholder="例：清水" maxlength="10" oninput="checkName()">
+      <p class="name-hint">※ 10文字以内でご入力ください</p>
+      <button class="btn-primary" id="btn-name" onclick="goStep(4)" disabled>次へ</button>
+      <span class="btn-back" onclick="goStep(2)">← 戻る</span>
+    </div>
+
+    <!-- STEP 4: LINE登録 -->
+    <div class="screen" id="screen4">
+      <div class="screen-title">LINEで通知を受け取る</div>
+      <p class="screen-desc">順番になったらLINEでお知らせします</p>
+      <div class="qr-box">
+        <img src="https://qr-official.line.me/gs/M_252sszre_GW.png?oat_content=qr" alt="パスタのマルコ LINE QRコード">
+        <p class="qr-label">まだ友だち追加していない方は<br>QRコードから追加してください</p>
+      </div>
+      <div class="line-steps">
+        <p>① パスタのマルコのLINEを開く</p>
+        <p>② トーク画面で<strong style="font-size:15px;color:#1a5c1a;">「1」と送信</strong>してください</p>
+        <p>③ 受付ボタンが緑色に変わったら押してください</p>
+      </div>
+      <button class="btn-primary" id="btn-register" onclick="registerQueue(false)">受付を完了する</button>
+      <button class="btn-no-line" onclick="registerQueue(true)">🔔 LINEをお持ちでない方はこちら</button>
+      <span class="btn-back" onclick="goStep(3)">← 戻る</span>
+    </div>
+
+    <!-- STEP 4b: ベル待ち（お客様向け） -->
+    <div class="screen" id="screen4b">
+      <div class="bell-waiting-box">
+        <div class="bell-icon">🔔</div>
+        <div class="bell-waiting-title">スタッフをお呼びください</div>
+        <div class="bell-waiting-desc">近くのスタッフにお声がけいただくか<br>レジまでお越しください</div>
+        <div class="bell-waiting-note">呼び出しベルをお受け取りください<br>順番になりましたらベルでお知らせします</div>
+      </div>
+      <p style="font-size:12px;color:var(--gray);text-align:center;line-height:1.7;margin-bottom:16px;">受付番号はスタッフが登録いたします<br>そのままお待ちください</p>
+      <span class="btn-back" onclick="cancelBellAndGoBack()">← 戻る</span>
+    </div>
+
+    <!-- STEP 5: 完了（LINE） -->
+    <div class="screen" id="screen5">
+      <div class="complete-icon">
+        <svg viewBox="0 0 36 36" fill="none">
+          <path d="M8 18l7 7L28 11" stroke="#c8a84b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="screen-title">受付完了しました</div>
+      <div class="wait-info">
+        <div class="wait-label">現在の待ち組数</div>
+        <div class="wait-number" id="wait-count">-</div>
+        <div class="wait-unit">組待ち</div>
+        <div class="wait-my-info" id="my-info"></div>
+      </div>
+      <p class="wait-note">順番になりましたらLINEにご連絡します<br>店内またはお車でお待ちください</p>
+      <button class="btn-home" onclick="location.reload()">🏠 最初のページに戻る</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, push, remove, onValue, serverTimestamp, get }
+  from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const MINS_PER_GROUP = 10;
+const firebaseConfig = {
+  apiKey: "AIzaSyC6HkSHYl_-hsDVdxGXz8NqJFMJv0KK_OU",
+  authDomain: "wcsa-shift.firebaseapp.com",
+  databaseURL: "https://wcsa-shift-default-rtdb.firebaseio.com",
+  projectId: "wcsa-shift",
+  storageBucket: "wcsa-shift.appspot.com",
+  messagingSenderId: "520358755238",
+  appId: "1:520358755238:web:ec0a3c46a9a8e9cdb1c53a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const queueRef = ref(db, 'marco-queue');
+
+onValue(queueRef, (snapshot) => {
+  const data = snapshot.val();
+  let count = 0;
+  if (data) Object.values(data).forEach(v => { if (v.status === 'waiting') count++; });
+  const el = document.getElementById('wait-count');
+  if (el) el.textContent = count;
+  const box = document.getElementById('wait-status-content');
+  if (box) {
+    if (count === 0) {
+      box.innerHTML = `<div class="wait-status-zero">🎉 現在お待ちはございません</div>`;
+    } else {
+      const mins = count * MINS_PER_GROUP;
+      box.innerHTML = `
+        <div class="wait-status-label">ただいま</div>
+        <div class="wait-status-row">
+          <div class="wait-status-num">${count}</div>
+          <div class="wait-status-unit">組 お待ちです</div>
+        </div>
+        <div class="wait-status-time">ご案内まで約 <strong>${mins}分</strong> の目安です</div>`;
+    }
+  }
+});
+
+async function getLatestLineUserId() {
+  try {
+    const usersRef = ref(db, 'marco-line-users');
+    const snapshot = await get(usersRef);
+    if (!snapshot.exists()) return null;
+    const data = snapshot.val();
+    const entries = Object.entries(data);
+    if (!entries.length) return null;
+    entries.sort((a, b) => b[1].addedAt - a[1].addedAt);
+    const [userId, info] = entries[0];
+    if (Date.now() - info.addedAt < 5 * 60 * 1000) return userId;
+    return null;
+  } catch(e) { return null; }
+}
+
+window._getLatestLineUserId = getLatestLineUserId;
+window._push = push;
+window._remove = remove;
+window._ref = (path) => ref(db, path);
+window._queueRef = queueRef;
+window._serverTimestamp = serverTimestamp;
+</script>
+
+<script>
+let selectedAdult = null;
+let selectedChild = null;
+
+function buildGrid(id, start, end, onSelect, btnId) {
+  const grid = document.getElementById(id);
+  if (grid.children.length) return;
+  for (let i = start; i <= end; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'count-btn';
+    btn.innerHTML = i + '<span class="unit">名</span>';
+    const n = i;
+    btn.onclick = () => {
+      onSelect(n);
+      document.querySelectorAll('#' + id + ' .count-btn').forEach((b, j) => b.classList.toggle('selected', j + start === n));
+      if (btnId) document.getElementById(btnId).disabled = false;
+    };
+    grid.appendChild(btn);
+  }
+}
+
+function buildAdultGrid() { buildGrid('adult-grid', 1, 8, n => selectedAdult = n, 'btn-adult'); }
+function buildChildGrid() { buildGrid('child-grid', 0, 7, n => selectedChild = n, 'btn-child'); }
+
+function checkName() {
+  document.getElementById('btn-name').disabled = document.getElementById('name-input').value.trim().length === 0;
+}
+
+function goStep(step) {
+  if (step === 1) buildAdultGrid();
+  if (step === 2) buildChildGrid();
+  if (step === 3) {
+    document.getElementById('summary-adult').textContent = selectedAdult;
+    document.getElementById('summary-child').textContent = selectedChild;
+  }
+  // STEP4に入ったらLINE検知監視を開始
+  if (step === 4) startLineWatch();
+  // STEP4から離れたら監視を停止
+  if (step !== 4) stopLineWatch();
+
+  const screenId = (step === '4b') ? 'screen4b' : 'screen' + step;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  const dotStep = (step === '4b') ? 4 : step;
+  for (let i = 0; i < 5; i++) {
+    const dot = document.getElementById('dot' + i);
+    if (!dot) continue;
+    dot.className = 'step-dot';
+    if (i === dotStep) dot.classList.add('active');
+    else if (i < dotStep) dot.classList.add('done');
+  }
+  window.scrollTo(0, 0);
+}
+
+// LINE検知監視
+let lineWatchTimer = null;
+let lineWatchActive = false;
+
+function startLineWatch() {
+  if (lineWatchActive) return;
+  lineWatchActive = true;
+  // ボタンを待機中スタイルに
+  const btn = document.getElementById('btn-register');
+  if (btn) {
+    btn.textContent = '📲 LINEからの「1」を待っています...';
+    btn.style.background = '#ddd5c0';
+    btn.style.color = '#8a8a8a';
+    btn.style.cursor = 'not-allowed';
+    btn.onclick = null;
+  }
+  // 2秒ごとにFirebaseをポーリング
+  lineWatchTimer = setInterval(async () => {
+    const userId = await window._getLatestLineUserId();
+    if (userId) {
+      // LINE検知！ボタンをアクティブに
+      const b = document.getElementById('btn-register');
+      if (b) {
+        b.textContent = '✅ 受付を完了する';
+        b.style.background = '#27ae60';
+        b.style.color = '#fff';
+        b.style.cursor = 'pointer';
+        b.style.animation = 'pulse 0.6s ease 2';
+        b.onclick = () => registerQueue(false);
+      }
+      stopLineWatch();
+    }
+  }, 2000);
+}
+
+function stopLineWatch() {
+  lineWatchActive = false;
+  if (lineWatchTimer) {
+    clearInterval(lineWatchTimer);
+    lineWatchTimer = null;
+  }
+  // ボタンを元に戻す（まだSTEP4にいる場合のみ）
+  const btn = document.getElementById('btn-register');
+  if (btn && btn.style.background === 'rgb(221, 213, 192)') {
+    btn.textContent = '受付を完了する';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.cursor = '';
+    btn.onclick = () => registerQueue(false);
+  }
+}
+
+async function registerQueue(isBell) {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) return;
+
+  if (isBell) {
+    // ベルの場合：仮エントリをFirebaseに保存してベル待ち画面へ
+    try {
+      const entry = {
+        name,
+        adult: selectedAdult,
+        child: selectedChild,
+        total: selectedAdult + selectedChild,
+        status: 'waiting',
+        lineUserId: '',
+        isBell: true,
+        bellNo: null, // スタッフが後で入力
+        needsBell: true,
+        createdAt: window._serverTimestamp()
+      };
+      const result = await window._push(window._queueRef, entry);
+      window._lastBellKey = result.key; // 戻る時に削除するためkeyを保存
+    } catch(e) { console.error(e); }
+    // ベル待ち画面へ（ステップバー非表示）
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen4b').classList.add('active');
+    document.getElementById('steps').style.display = 'none';
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  // LINE通常フロー
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  btn.textContent = '登録中...';
+  try {
+    const lineUserId = await window._getLatestLineUserId();
+    const entry = {
+      name,
+      adult: selectedAdult,
+      child: selectedChild,
+      total: selectedAdult + selectedChild,
+      status: 'waiting',
+      lineUserId: lineUserId || '',
+      isBell: false,
+      createdAt: window._serverTimestamp()
+    };
+    await window._push(window._queueRef, entry);
+    document.getElementById('my-info').textContent = name + ' 様　大人' + selectedAdult + '名・子ども' + selectedChild + '名';
+    goStep(5);
+    document.getElementById('steps').style.display = 'none';
+  } catch(e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = '受付を完了する';
+    alert('エラーが発生しました。もう一度お試しください。');
+  }
+}
+
+window.goStep = goStep;
+window.registerQueue = registerQueue;
+window.checkName = checkName;
+
+window.cancelBellAndGoBack = async function() {
+  if (window._lastBellKey) {
+    try {
+      await window._remove(window._ref('marco-queue/' + window._lastBellKey));
+    } catch(e) { console.error(e); }
+    window._lastBellKey = null;
+  }
+  document.getElementById('steps').style.display = 'flex';
+  goStep(4);
+};
+</script>
+</body>
+</html>
