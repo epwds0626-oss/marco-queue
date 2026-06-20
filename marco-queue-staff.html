@@ -41,23 +41,18 @@
   .queue-card.cancelled { border-left-color:var(--gray); opacity:.4; }
   .queue-card.absent { border-left-color:var(--red); opacity:.5; }
   .queue-card.reserved { border-left-color:var(--purple); }
-  .queue-card.needs-bell { border-left-color:#e8c84b; background:#fffdf0; }
   .queue-num { width:36px; height:36px; background:var(--navy); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:14px; font-weight:700; flex-shrink:0; }
   .queue-info { flex:1; min-width:0; }
   .queue-name { font-size:18px; font-weight:700; color:var(--navy); }
   .queue-name span { font-size:13px; font-weight:400; color:var(--gray); }
   .queue-meta { font-size:12px; color:var(--gray); margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }
   .queue-note { font-size:12px; color:var(--purple); margin-top:4px; background:#f9f0ff; border-radius:4px; padding:3px 8px; display:inline-block; }
-  .queue-bell { font-size:12px; color:#b7770d; margin-top:4px; background:#fff8e6; border-radius:4px; padding:3px 8px; display:inline-block; font-weight:700; }
-  .queue-needs-bell { font-size:12px; color:#b7770d; margin-top:4px; background:#fff3cd; border-radius:4px; padding:3px 8px; display:inline-block; font-weight:700; border:1px dashed #e8c84b; }
   .queue-time-badge { font-size:11px; background:#f5f5f5; border-radius:4px; padding:2px 6px; color:var(--gray); }
   .queue-actions { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
-  .btn-set-bell { padding:8px 12px; background:#e8c84b; color:var(--navy); border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   .btn-call { padding:8px 12px; background:var(--orange); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   .btn-seat { padding:8px 12px; background:var(--green); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   .btn-absent { padding:7px 12px; background:#fff; color:var(--red); border:1px solid var(--red); border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
   .btn-cancel { padding:7px 12px; background:#fff; color:var(--red); border:1px solid var(--red); border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
-  .btn-memo { padding:7px 12px; background:#fff; color:var(--gray); border:1px solid var(--border); border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
   .memo-area { margin-top:8px; display:flex; gap:6px; }
   .memo-input { flex:1; padding:8px 10px; font-size:13px; border:1px solid var(--border); border-radius:6px; font-family:inherit; color:var(--navy); outline:none; -webkit-appearance:none; }
   .memo-input:focus { border-color:var(--gold); }
@@ -70,8 +65,7 @@
   .status-tag.reserved { background:#f3e5f5; color:var(--purple); }
   .empty-state { text-align:center; padding:48px 20px; color:var(--gray); }
   .empty-state .icon { font-size:48px; margin-bottom:12px; }
-  /* モーダル共通 */
-  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; padding:16px; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding-top:60px; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; padding:16px; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:40px; padding-bottom:40px; }
   .modal-overlay.show { display:flex; }
   .modal-box { background:#fff; border-radius:16px; padding:24px; width:100%; max-width:380px; }
   .modal-title { font-size:16px; font-weight:700; color:var(--navy); margin-bottom:20px; }
@@ -83,10 +77,6 @@
   .modal-actions { display:flex; gap:10px; margin-top:20px; }
   .btn-modal-cancel { flex:1; padding:14px; background:#fff; color:var(--gray); border:1px solid var(--border); border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; min-height:48px; }
   .btn-modal-submit { flex:2; padding:14px; background:var(--navy); color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; min-height:48px; }
-  /* ベルグリッド */
-  .bell-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:8px; }
-  .bell-btn { padding:12px 4px; background:#fff; border:2px solid var(--border); border-radius:8px; font-size:16px; font-weight:700; color:var(--navy); cursor:pointer; text-align:center; }
-  .bell-btn.selected { background:var(--navy); border-color:var(--navy); color:var(--gold); }
   .overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:300; }
   .overlay.show { display:flex; }
   .overlay-box { background:#fff; border-radius:12px; padding:24px 32px; text-align:center; font-size:15px; color:var(--navy); font-weight:600; }
@@ -151,20 +141,6 @@
   </div>
 </div>
 
-<!-- ベル番号設定モーダル -->
-<div class="modal-overlay" id="bell-modal">
-  <div class="modal-box">
-    <div class="modal-title">🔔 ベル番号を設定</div>
-    <p style="font-size:13px;color:var(--gray);margin-bottom:16px;" id="bell-modal-name"></p>
-    <div class="bell-grid" id="bell-grid"></div>
-    <p style="font-size:12px;color:var(--gray);margin-top:8px;margin-bottom:0;">選択後、ベルをお客様にお渡しください</p>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" ontouchend="closeModal('bell-modal')" onclick="closeModal('bell-modal')">閉じる</button>
-      <button class="btn-modal-submit" id="btn-bell-submit" ontouchend="submitBell()" onclick="submitBell()" disabled>確定する</button>
-    </div>
-  </div>
-</div>
-
 <div class="overlay" id="overlay"><div class="overlay-box">📲 送信中...</div></div>
 <div class="toast" id="toast"></div>
 
@@ -187,8 +163,6 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const queueRef = ref(db, 'marco-queue');
 let allEntries = [];
-let bellTargetKey = '';
-let selectedBellNo = null;
 
 onValue(queueRef, (snapshot) => {
   const data = snapshot.val() || {};
@@ -224,13 +198,8 @@ function renderEntries(entries, mode) {
     if (e.status==='absent')    tag = '<span class="status-tag absent">不在</span>';
     if (e.isReserved && e.status==='waiting') tag = '<span class="status-tag reserved">予約</span>';
 
-    const needsBell = e.isBell && e.needsBell && !e.bellNo;
-    const bellHtml = needsBell
-      ? `<div class="queue-needs-bell">🔔 ベル番号未設定</div>`
-      : (e.bellNo ? `<div class="queue-bell">🔔 ベル${e.bellNo}番</div>` : '');
     const noteHtml = e.note ? `<div class="queue-note">📝 ${e.note}</div>` : '';
-    const lineIcon = (!e.isBell && e.lineUserId) ? '📲' : '';
-    // 待ち中・呼び出し済はメモ欄を表示
+    const lineIcon = e.lineUserId ? '📲' : '';
     const memoHtml = (e.status === 'waiting' || e.status === 'called')
       ? `<div class="memo-area">
           <input class="memo-input" id="memo-${e.key}" type="text" placeholder="メモを入力..." maxlength="40" value="${(e.staffMemo||'').replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')saveMemo('${e.key}')">
@@ -240,17 +209,10 @@ function renderEntries(entries, mode) {
 
     let actions = '';
     if (e.status === 'waiting') {
-      if (needsBell) {
-        actions = `<div class="queue-actions">
-          <button class="btn-set-bell" onclick="openBellModal('${e.key}','${e.name}')">🔔 ベル設定</button>
-          <button class="btn-cancel" onclick="cancelCustomer('${e.key}','${e.name}')">キャンセル</button>
-        </div>`;
-      } else {
-        actions = `<div class="queue-actions">
-          <button class="btn-call" onclick="callCustomer('${e.key}','${e.name}',${e.total},'${e.lineUserId||''}',${!!e.isBell},${e.bellNo||0})">📣 呼び出す</button>
-          <button class="btn-cancel" onclick="cancelCustomer('${e.key}','${e.name}')">キャンセル</button>
-        </div>`;
-      }
+      actions = `<div class="queue-actions">
+        <button class="btn-call" onclick="callCustomer('${e.key}','${e.name}',${e.total},'${e.lineUserId||''}')">📣 呼び出す</button>
+        <button class="btn-cancel" onclick="cancelCustomer('${e.key}','${e.name}')">キャンセル</button>
+      </div>`;
     }
     if (e.status === 'called') {
       actions = `<div class="queue-actions">
@@ -259,7 +221,7 @@ function renderEntries(entries, mode) {
       </div>`;
     }
 
-    const cardCls = ['queue-card', e.status, needsBell?'needs-bell':'', e.isReserved&&e.status==='waiting'?'reserved':''].filter(Boolean).join(' ');
+    const cardCls = ['queue-card', e.status, e.isReserved&&e.status==='waiting'?'reserved':''].filter(Boolean).join(' ');
     return `<div class="${cardCls}">
       <div class="queue-num">${mode==='waiting'?num++:''}</div>
       <div class="queue-info">
@@ -268,58 +230,21 @@ function renderEntries(entries, mode) {
           <span>大人${e.adult}名・子ども${e.child}名（計${e.total}名）</span>
           <span class="queue-time-badge">${ts(e.createdAt)}受付</span>
         </div>
-        ${bellHtml}${noteHtml}${memoHtml}
+        ${noteHtml}${memoHtml}
       </div>
       ${actions}
     </div>`;
   }).join('');
 }
 
-// ベルモーダルを開く
-window.openBellModal = function(key, name) {
-  bellTargetKey = key;
-  selectedBellNo = null;
-  document.getElementById('bell-modal-name').textContent = name + ' 様にベルをお渡しください';
-  document.getElementById('btn-bell-submit').disabled = true;
-  // グリッド生成（初回のみ）
-  const grid = document.getElementById('bell-grid');
-  if (!grid.children.length) {
-    for (let i = 1; i <= 20; i++) {
-      const btn = document.createElement('button');
-      btn.className = 'bell-btn';
-      btn.textContent = i;
-      const n = i;
-      btn.ontouchend = btn.onclick = (ev) => {
-        ev.preventDefault();
-        selectedBellNo = n;
-        document.querySelectorAll('.bell-btn').forEach((b,j) => b.classList.toggle('selected', j+1===n));
-        document.getElementById('btn-bell-submit').disabled = false;
-      };
-      grid.appendChild(btn);
-    }
-  } else {
-    document.querySelectorAll('.bell-btn').forEach(b => b.classList.remove('selected'));
-  }
-  document.getElementById('bell-modal').classList.add('show');
-};
-
-window.submitBell = async function() {
-  if (!selectedBellNo || !bellTargetKey) return;
-  await update(ref(db, 'marco-queue/' + bellTargetKey), { bellNo: selectedBellNo, needsBell: false });
-  closeModal('bell-modal');
-  showToast('🔔 ベル' + selectedBellNo + '番を設定しました');
-};
-
-window.callCustomer = async function(key, name, total, lineUserId, isBell, bellNo) {
+window.callCustomer = async function(key, name, total, lineUserId) {
   if (!confirm(name + ' 様（' + total + '名）を呼び出しますか？')) return;
   showOverlay(true);
   try {
-    if (!isBell && lineUserId && lineUserId !== '' && lineUserId !== 'undefined') {
+    if (lineUserId && lineUserId !== '' && lineUserId !== 'undefined') {
       const url = GAS_URL + '?action=call&userId=' + encodeURIComponent(lineUserId) + '&name=' + encodeURIComponent(name) + '&total=' + total;
       await fetch(url, {mode:'no-cors'});
       showToast('📲 ' + name + ' 様にLINE通知しました');
-    } else if (isBell) {
-      showToast('🔔 ベル' + bellNo + '番を鳴らしてください');
     } else {
       showToast('⚠️ LINE未登録のためステータスのみ更新');
     }
@@ -351,8 +276,7 @@ window.cancelCustomer = async function(key, name) {
 window.saveMemo = async function(key) {
   const input = document.getElementById('memo-' + key);
   if (!input) return;
-  const memo = input.value.trim();
-  await update(ref(db, 'marco-queue/' + key), { staffMemo: memo });
+  await update(ref(db, 'marco-queue/' + key), { staffMemo: input.value.trim() });
   showToast('🗒 メモを保存しました');
 };
 
