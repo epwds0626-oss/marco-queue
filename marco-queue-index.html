@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>パスタのマルコ | 順番待ち受付</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   :root { --navy:#1a2744; --gold:#c8a84b; --cream:#fdf8f0; --text:#1a2744; --gray:#8a8a8a; --border:#ddd5c0; --green:#27ae60; }
-  body { font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; background:var(--navy); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+  body { font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; background:var(--navy); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:24px 16px; }
   .card { background:var(--cream); border-radius:16px; width:100%; max-width:420px; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,.4); }
   .card-header { background:var(--navy); padding:20px 24px 16px; text-align:center; border-bottom:3px solid var(--gold); }
   .store-name { color:var(--gold); font-size:22px; font-weight:700; letter-spacing:.12em; }
@@ -46,14 +49,6 @@
   .qr-label { font-size:13px; color:var(--gray); line-height:1.6; }
   .line-steps { background:#f0f9f0; border:1px solid #b8ddb8; border-radius:10px; padding:14px 16px; margin-bottom:12px; }
   .line-steps p { font-size:13px; color:#2d6a2d; line-height:1.8; }
-  .btn-no-line { width:100%; padding:13px; background:#fff; color:var(--gray); border:1px solid var(--border); border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-bottom:12px; }
-  /* ベル待ち画面 */
-  .bell-waiting-box { background:#fff; border:2px solid #e8c84b; border-radius:16px; padding:28px 20px; text-align:center; margin-bottom:24px; }
-  .bell-icon { font-size:56px; margin-bottom:12px; }
-  .bell-waiting-title { font-size:20px; font-weight:700; color:var(--navy); margin-bottom:8px; }
-  .bell-waiting-desc { font-size:14px; color:var(--gray); line-height:1.7; }
-  .bell-waiting-note { font-size:13px; color:#b7770d; background:#fff8e6; border-radius:8px; padding:10px 14px; margin-top:16px; font-weight:600; }
-  /* 完了 */
   .complete-icon { width:72px; height:72px; background:var(--navy); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
   .complete-icon svg { width:36px; height:36px; }
   .wait-info { background:#fff; border:2px solid var(--border); border-radius:12px; padding:20px; text-align:center; margin-bottom:20px; }
@@ -151,24 +146,11 @@
         <p>② トーク画面で<strong style="font-size:15px;color:#1a5c1a;">「1」と送信</strong>してください</p>
         <p>③ 受付ボタンが緑色に変わったら押してください</p>
       </div>
-      <button class="btn-primary" id="btn-register" onclick="registerQueue(false)">受付を完了する</button>
-      <button class="btn-no-line" onclick="registerQueue(true)">🔔 LINEをお持ちでない方はこちら</button>
+      <button class="btn-primary" id="btn-register" onclick="registerQueue()">受付を完了する</button>
       <span class="btn-back" onclick="goStep(3)">← 戻る</span>
     </div>
 
-    <!-- STEP 4b: ベル待ち（お客様向け） -->
-    <div class="screen" id="screen4b">
-      <div class="bell-waiting-box">
-        <div class="bell-icon">🔔</div>
-        <div class="bell-waiting-title">スタッフをお呼びください</div>
-        <div class="bell-waiting-desc">近くのスタッフにお声がけいただくか<br>レジまでお越しください</div>
-        <div class="bell-waiting-note">呼び出しベルをお受け取りください<br>順番になりましたらベルでお知らせします</div>
-      </div>
-      <p style="font-size:12px;color:var(--gray);text-align:center;line-height:1.7;margin-bottom:16px;">受付番号はスタッフが登録いたします<br>そのままお待ちください</p>
-      <span class="btn-back" onclick="cancelBellAndGoBack()">← 戻る</span>
-    </div>
-
-    <!-- STEP 5: 完了（LINE） -->
+    <!-- STEP 5: 完了 -->
     <div class="screen" id="screen5">
       <div class="complete-icon">
         <svg viewBox="0 0 36 36" fill="none">
@@ -190,7 +172,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getDatabase, ref, push, remove, onValue, serverTimestamp, get }
+import { getDatabase, ref, push, onValue, serverTimestamp, get }
   from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 const MINS_PER_GROUP = 10;
@@ -248,8 +230,6 @@ async function getLatestLineUserId() {
 
 window._getLatestLineUserId = getLatestLineUserId;
 window._push = push;
-window._remove = remove;
-window._ref = (path) => ref(db, path);
 window._queueRef = queueRef;
 window._serverTimestamp = serverTimestamp;
 </script>
@@ -289,23 +269,19 @@ function goStep(step) {
     document.getElementById('summary-adult').textContent = selectedAdult;
     document.getElementById('summary-child').textContent = selectedChild;
   }
-  // STEP4に入ったらLINE検知監視を開始
   if (step === 4) startLineWatch();
-  // STEP4から離れたら監視を停止
   if (step !== 4) stopLineWatch();
 
-  const screenId = (step === '4b') ? 'screen4b' : 'screen' + step;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
-  const dotStep = (step === '4b') ? 4 : step;
+  document.getElementById('screen' + step).classList.add('active');
   for (let i = 0; i < 5; i++) {
     const dot = document.getElementById('dot' + i);
     if (!dot) continue;
     dot.className = 'step-dot';
-    if (i === dotStep) dot.classList.add('active');
-    else if (i < dotStep) dot.classList.add('done');
+    if (i === step) dot.classList.add('active');
+    else if (i < step) dot.classList.add('done');
   }
-  window.scrollTo(0, 0);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // LINE検知監視
@@ -315,7 +291,6 @@ let lineWatchActive = false;
 function startLineWatch() {
   if (lineWatchActive) return;
   lineWatchActive = true;
-  // ボタンを待機中スタイルに
   const btn = document.getElementById('btn-register');
   if (btn) {
     btn.textContent = '📲 LINEからの「1」を待っています...';
@@ -324,11 +299,9 @@ function startLineWatch() {
     btn.style.cursor = 'not-allowed';
     btn.onclick = null;
   }
-  // 2秒ごとにFirebaseをポーリング
   lineWatchTimer = setInterval(async () => {
     const userId = await window._getLatestLineUserId();
     if (userId) {
-      // LINE検知！ボタンをアクティブに
       const b = document.getElementById('btn-register');
       if (b) {
         b.textContent = '✅ 受付を完了する';
@@ -336,7 +309,7 @@ function startLineWatch() {
         b.style.color = '#fff';
         b.style.cursor = 'pointer';
         b.style.animation = 'pulse 0.6s ease 2';
-        b.onclick = () => registerQueue(false);
+        b.onclick = () => registerQueue();
       }
       stopLineWatch();
     }
@@ -349,48 +322,19 @@ function stopLineWatch() {
     clearInterval(lineWatchTimer);
     lineWatchTimer = null;
   }
-  // ボタンを元に戻す（まだSTEP4にいる場合のみ）
   const btn = document.getElementById('btn-register');
   if (btn && btn.style.background === 'rgb(221, 213, 192)') {
     btn.textContent = '受付を完了する';
     btn.style.background = '';
     btn.style.color = '';
     btn.style.cursor = '';
-    btn.onclick = () => registerQueue(false);
+    btn.onclick = () => registerQueue();
   }
 }
 
-async function registerQueue(isBell) {
+async function registerQueue() {
   const name = document.getElementById('name-input').value.trim();
   if (!name) return;
-
-  if (isBell) {
-    // ベルの場合：仮エントリをFirebaseに保存してベル待ち画面へ
-    try {
-      const entry = {
-        name,
-        adult: selectedAdult,
-        child: selectedChild,
-        total: selectedAdult + selectedChild,
-        status: 'waiting',
-        lineUserId: '',
-        isBell: true,
-        bellNo: null, // スタッフが後で入力
-        needsBell: true,
-        createdAt: window._serverTimestamp()
-      };
-      const result = await window._push(window._queueRef, entry);
-      window._lastBellKey = result.key; // 戻る時に削除するためkeyを保存
-    } catch(e) { console.error(e); }
-    // ベル待ち画面へ（ステップバー非表示）
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen4b').classList.add('active');
-    document.getElementById('steps').style.display = 'none';
-    window.scrollTo(0, 0);
-    return;
-  }
-
-  // LINE通常フロー
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
   btn.textContent = '登録中...';
@@ -421,17 +365,6 @@ async function registerQueue(isBell) {
 window.goStep = goStep;
 window.registerQueue = registerQueue;
 window.checkName = checkName;
-
-window.cancelBellAndGoBack = async function() {
-  if (window._lastBellKey) {
-    try {
-      await window._remove(window._ref('marco-queue/' + window._lastBellKey));
-    } catch(e) { console.error(e); }
-    window._lastBellKey = null;
-  }
-  document.getElementById('steps').style.display = 'flex';
-  goStep(4);
-};
 </script>
 </body>
 </html>
